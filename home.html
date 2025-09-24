@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maino</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f1a;
+      color: #f4f4f4;
+      overflow: hidden;
+    }
+
+    #home {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    #home canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #0f0f1a;
+      z-index: 0;
+    }
+
+    #home .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    #home h1 {
+      font-size: 42px;
+      margin-bottom: 20px;
+    }
+
+    #home p { font-size: 20px; margin-bottom: 30px; color: #aaa; }
+
+    #home button {
+      padding: 15px 30px; font-size: 18px; font-weight: bold;
+      background: #5be3ff; border: none; border-radius: 8px; cursor: pointer;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <section id="home">
+    <canvas id="gdCanvas"></canvas>
+    <div class="content">
+      <h1>HELLO! <span style="color:#5be3ff;">WELCOME TO MY</span> PORTFOLIO</h1>
+      <p>Created by: Joel June Fabillar</p>
+      <button id="playBtn">PLAY NOW</button>
+    </div>
+  </section>
+
+  <!-- Background music -->
+  <audio id="bgMusic" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c92460f289.mp3?filename=retro-platforming-112199.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById("gdCanvas");
+    const ctx = canvas.getContext("2d");
+    let width, height;
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    // Ground
+    let groundHeight = 100;
+
+    // Player (cube)
+    let player = {
+      x: 150,
+      y: height - groundHeight - 40,
+      size: 40,
+      vy: 0,
+      jumping: false,
+      angle: 0
+    };
+
+    // Physics
+    let gravity = 0.6;
+    let jumpPower = -12;
+
+    // World offset (camera scrolls)
+    let worldX = 0;
+    let speed = 6;
+
+    // Obstacles
+    let obstacles = [];
+    function spawnObstacle() {
+      let h = 40 + Math.random() * 40;
+      obstacles.push({ x: worldX + width + 200, y: height - groundHeight - h, w: 30, h: h });
+    }
+    setInterval(spawnObstacle, 2000);
+
+    function drawCubeWithFace(px, py, size, angle) {
+      ctx.save();
+      ctx.translate(px + size / 2, py + size / 2);
+      ctx.rotate(angle);
+
+      ctx.fillStyle = "#5be3ff";
+      ctx.fillRect(-size / 2, -size / 2, size, size);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-size / 2, -size / 2, size, size);
+
+      ctx.fillStyle = "#000";
+      let eyeSize = size * 0.2;
+      let eyeOffsetX = size * 0.2;
+      let eyeOffsetY = -size * 0.1;
+
+      ctx.fillRect(-eyeOffsetX - eyeSize / 2, -eyeSize / 2 + eyeOffsetY, eyeSize, eyeSize);
+      ctx.fillRect(eyeOffsetX - eyeSize / 2, -eyeSize / 2 + eyeOffsetY, eyeSize, eyeSize);
+      ctx.fillRect(-size * 0.25, size * 0.1, size * 0.5, size * 0.15);
+
+      ctx.restore();
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      worldX += speed;
+
+      ctx.fillStyle = "#1f1f2e";
+      ctx.fillRect(0, height - groundHeight, width, groundHeight);
+
+      for (let ob of obstacles) {
+        let screenX = ob.x - worldX;
+        let distance = screenX - player.x - player.size;
+        if (!player.jumping && distance < 60 && distance > 0) {
+          player.vy = jumpPower;
+          player.jumping = true;
+        }
+      }
+
+      player.vy += gravity;
+      player.y += player.vy;
+      if (player.y > height - groundHeight - player.size) {
+        player.y = height - groundHeight - player.size;
+        player.vy = 0;
+        player.jumping = false;
+      }
+
+      player.angle += player.jumping ? 0.2 : 0.1;
+
+      drawCubeWithFace(player.x, player.y, player.size, player.angle);
+
+      ctx.fillStyle = "#f54291";
+      for (let ob of obstacles) {
+        let screenX = ob.x - worldX;
+        ctx.fillRect(screenX, ob.y, ob.w, ob.h);
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Music autoplay (requires user interaction in some browsers)
+    const bgMusic = document.getElementById("bgMusic");
+    document.body.addEventListener("click", () => {
+      bgMusic.play().catch(err => console.log("Music play prevented:", err));
+    }, { once: true });
+
+    // PLAY NOW transition
+    document.getElementById("playBtn").addEventListener("click", () => {
+      bgMusic.pause(); // stop music when navigating
+      document.body.style.transition = "transform 1s ease, opacity 1s ease";
+      document.body.style.transform = "scale(2)";
+      document.body.style.opacity = "0";
+      setTimeout(() => { window.location.href = "main.html"; }, 1000);
+    });
+  </script>
+</body>
+</html>
